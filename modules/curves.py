@@ -1,6 +1,20 @@
 from datetime import datetime, timedelta
-from math import log, exp, ceil
+import math
+from math import ceil
 from copy import deepcopy
+from modules.dual import Dual
+
+
+def exp(x):
+    if isinstance(x, Dual):
+        return x.__exp__()
+    return math.exp(x)
+
+
+def log(x):
+    if isinstance(x, Dual):
+        return x.__log__()
+    return math.log(x)
 
 
 def interpolate(x, x_1, y_1, x_2, y_2, interpolation, start=None):
