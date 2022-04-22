@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 import math
 from math import ceil
 from copy import deepcopy
+import numpy as np
 from modules.dual import Dual
 
 
@@ -104,6 +105,96 @@ class Schedule:
         return schedule
 
 
+class SolvedCurve(Curve):
+    def __init__(self, nodes: dict, interpolation: str, swaps: list, obj_rates: list,
+                 algorithm: str = "gauss_newton"):
+        super().__init__(nodes=nodes, interpolation=interpolation)
+        self.swaps, self.obj_rates, self.algo = swaps, obj_rates, algorithm
+        self.n, self.m = len(self.nodes.keys()) - 1, len(self.swaps)
+        self.s = np.array([self.obj_rates]).transpose()
+        self.lam = 1000
+
+    def calculate_metrics(self):
+        self.r = np.array([[swap.rate(self) for swap in self.swaps]]).transpose()
+        self.v = np.array([[v for v in list(self.nodes.values())[1:]]]).transpose()
+        x = self.r - self.s
+        self.f = np.matmul(x.transpose(), x)[0][0]
+        self.grad_v_f = np.array(
+            [[self.f.dual.get(f"v{i+1}", 0) for i in range(self.n)]]
+        ).transpose()
+        self.J = np.array([
+            [rate.dual.get(f"v{j+1}", 0) for rate in self.r[:, 0]]
+            for j in range(self.n)
+        ])
+
+    def update_step_gradient_descent(self):
+        y = np.matmul(self.J.transpose(), self.grad_v_f)
+        alpha = np.matmul(y.transpose(), self.r - self.s) / np.matmul(y.transpose(), y)
+        alpha = alpha[0][0].real
+        v_1 = self.v - self.grad_v_f * alpha
+        return v_1
+
+    def update_step_gauss_newton(self):
+        A = np.matmul(self.J, self.J.transpose())
+        b = -0.5 * self.grad_v_f
+        delta = np.linalg.solve(A, b)
+        v_1 = self.v + delta
+        return v_1
+
+    def update_step_levenberg_marquardt(self):
+        self.lam *= 2 if self.f_prev < self.f.real else 0.5
+        J_T = self.J.transpose()
+        A = np.matmul(self.J, J_T) + self.lam * np.eye(self.J.shape[0])
+        b = -0.5 * self.grad_v_f
+        delta = np.linalg.solve(A, b)
+        v_1 = self.v + delta
+        return v_1
+
+    def iterate(self, max_i=2000, tol=1e-10):
+        ret, self.f_prev, self.f_list = None, 1e10, []
+        for i in range(max_i):
+            self.calculate_metrics()
+            self.f_list.append(self.f.real)
+            if self.f.real < self.f_prev and (self.f_prev - self.f.real) < tol:
+                ret = f"tolerance reached ({self.algo}) after {i} iterations, "
+                ret += f"func: {self.f.real}"
+                break
+            v_1 = getattr(self, f"update_step_{self.algo}")()
+            for i, (k, v) in enumerate(self.nodes.items()):
+                if i == 0:
+                    continue
+                self.nodes[k] = v_1[i - 1, 0]
+            self.f_prev = self.f.real
+        self.lam = 1000
+        return f"max iterations ({self.algo}), f: {self.f.real}" if ret is None else ret
+
+    @property
+    def grad_s_v(self):
+        if getattr(self, "grad_s_v_", None) is None:
+            self.grad_s_v_numeric()
+        return self.grad_s_v_
+
+    def grad_s_v_numeric(self, **kwargs):
+        kwargs = {
+            "interpolation": self.interpolation,
+            "nodes": self.nodes,
+            "algorithm": "gauss_newton",
+            "swaps": self.swaps,
+            "obj_rates": self.obj_rates,
+            **kwargs
+        }
+        grad_s_v = np.zeros(shape=(self.m, self.n))
+        ds = 1e-2
+        s_cv_fwd = type(self)(**kwargs)
+        for s in range(self.m):
+            s_cv_fwd.nodes, s_cv_fwd.s = self.nodes, self.s.copy()
+            s_cv_fwd.s[s, 0] += ds
+            print("fwd", s_cv_fwd.iterate())
+            dvds_fwd = np.array([v.real for v in (s_cv_fwd.v[:, 0] - self.v[:, 0])/ds])
+            grad_s_v[s, :] = dvds_fwd
+        self.grad_s_v_ = grad_s_v
+
+
 class Swap:
 
     def __init__(
@@ -135,3 +226,11 @@ class Swap:
     def npv(self, curve: Curve, fixed_rate: float, notional: float = 1e6):
         npv = (self.rate(curve) - fixed_rate) * self.analytic_delta(curve)
         return npv * notional / 100
+
+    def risk(self, curve: SolvedCurve, fixed_rate: float, notional: float = 1e6):
+        grad_v_P = np.array([
+            [self.npv(curve, fixed_rate, notional).dual.get(f"v{i+1}", 0)
+             for i in range(curve.n)]
+        ]).transpose()
+        grad_s_P = np.matmul(curve.grad_s_v, grad_v_P)
+        return grad_s_P / 100
