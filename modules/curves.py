@@ -88,3 +88,36 @@ class Schedule:
             [period_start, self.end, (self.end - period_start) / self.dcf_conv]
         )
         return schedule
+
+
+class Swap:
+
+    def __init__(
+        self,
+        start: datetime,
+        tenor: int,
+        period_fix: int,
+        period_float: int,
+    ):
+        self.start = start
+        self.end = add_months(start, tenor)
+        self.schedule_fix = Schedule(start, tenor, period_fix)
+        self.schedule_float = Schedule(start, tenor, period_float)
+
+    def __repr__(self):
+        return f"<Swap: {self.start.strftime('%Y-%m-%d')} -> " \
+               f"{self.end.strftime('%Y-%m-%d')}>"
+
+    def analytic_delta(self, curve: Curve, leg: str = "fix", notional: float = 1e4):
+        delta = 0
+        for period in getattr(self, f"schedule_{leg}").data:
+            delta += curve[period[1]] * period[2]
+        return delta * notional / 10000
+
+    def rate(self, curve: Curve):
+        rate = (curve[self.start] - curve[self.end]) / self.analytic_delta(curve)
+        return rate * 100
+
+    def npv(self, curve: Curve, fixed_rate: float, notional: float = 1e6):
+        npv = (self.rate(curve) - fixed_rate) * self.analytic_delta(curve)
+        return npv * notional / 100
