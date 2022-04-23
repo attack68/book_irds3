@@ -4,6 +4,7 @@ from math import ceil
 from copy import deepcopy
 import numpy as np
 from modules.dual import Dual
+from modules.bsplines import BSpline
 
 
 def exp(x):
@@ -57,6 +58,17 @@ class Curve:
         for k, v in self.nodes.items():
             output += f"{k.strftime('%Y-%b-%d')}: {v:.6f}\n"
         return output
+
+    def rate(self, start: datetime, months: int = None, days: int = None):
+        if months is not None:
+            end = add_months(start, months)
+        elif days is not None:
+            end = start + timedelta(days=days)
+        else:
+            end = None
+        df_ratio = self[start] / self[end]
+        rate = (df_ratio - 1) * timedelta(days=365) / (end - start)
+        return rate * 100
 
 
 def add_months(start: datetime, months: int) -> datetime:
@@ -234,3 +246,33 @@ class Swap:
         ]).transpose()
         grad_s_P = np.matmul(curve.grad_s_v, grad_v_P)
         return grad_s_P / 100
+
+
+class AdvancedCurve(SolvedCurve):
+    def __init__(self, nodes: dict, interpolation: str, swaps: list, obj_rates: list,
+                 t: list, algorithm: str = "gauss_newton"):
+        super().__init__(nodes, interpolation, swaps, obj_rates, algorithm)
+        self.t = t
+
+    def __getitem__(self, date: datetime):
+        if date <= self.t[0]:
+            return super().__getitem__(date)
+        else:
+            return self.bs.ppev_single(date).__exp__()
+
+    def solve_bspline(self):
+        tau = [k for k in self.nodes.keys() if k >= self.t[0]]
+        y = [v.__log__() for k, v in self.nodes.items() if k >= self.t[0]]
+
+        # add second derivative endpoints
+        tau.insert(0, self.t[0])
+        tau.append(self.t[-1])
+        y.insert(0, 0)
+        y.append(0)
+
+        self.bs = BSpline(4, self.t)
+        self.bs.bsplsolve(np.array(tau), np.array(y), 2, 2)
+
+    def calculate_metrics(self):
+        self.solve_bspline()
+        super().calculate_metrics()
