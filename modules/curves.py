@@ -124,18 +124,20 @@ class Schedule:
 
 class SolvedCurve(Curve):
     def __init__(self, nodes: dict, interpolation: str, swaps: list, obj_rates: list,
-                 algorithm: str = "gauss_newton"):
+                 algorithm: str = "gauss_newton", w: list = None):
         super().__init__(nodes=nodes, interpolation=interpolation)
         self.swaps, self.obj_rates, self.algo = swaps, obj_rates, algorithm
         self.n, self.m = len(self.nodes.keys()) - 1, len(self.swaps)
         self.s = np.array([self.obj_rates]).transpose()
+        self.W = None if w is None else np.diag(w)
         self.lam = 1000
 
     def calculate_metrics(self):
         self.r = np.array([[swap.rate(self) for swap in self.swaps]]).transpose()
         self.v = np.array([[v for v in list(self.nodes.values())[1:]]]).transpose()
         x = self.r - self.s
-        self.f = np.matmul(x.transpose(), x)[0][0]
+        Wx = x if self.W is None else np.matmul(self.W, x)
+        self.f = np.matmul(x.transpose(), Wx)[0][0]
         self.grad_v_f = np.array(
             [[self.f.dual.get(f"v{i+1}", 0) for i in range(self.n)]]
         ).transpose()
@@ -152,7 +154,8 @@ class SolvedCurve(Curve):
         return v_1
 
     def update_step_gauss_newton(self):
-        A = np.matmul(self.J, self.J.transpose())
+        J_T = self.J.transpose()
+        A = np.matmul(self.J, J_T if self.W is None else np.matmul(self.W, J_T))
         b = -0.5 * self.grad_v_f
         delta = np.linalg.solve(A, b)
         v_1 = self.v + delta
@@ -161,7 +164,8 @@ class SolvedCurve(Curve):
     def update_step_levenberg_marquardt(self):
         self.lam *= 2 if self.f_prev < self.f.real else 0.5
         J_T = self.J.transpose()
-        A = np.matmul(self.J, J_T) + self.lam * np.eye(self.J.shape[0])
+        WJ_T = J_T if self.W is None else np.matmul(self.W, J_T)
+        A = np.matmul(self.J, WJ_T) + self.lam * np.eye(self.J.shape[0])
         b = -0.5 * self.grad_v_f
         delta = np.linalg.solve(A, b)
         v_1 = self.v + delta
@@ -198,6 +202,7 @@ class SolvedCurve(Curve):
             "algorithm": "gauss_newton",
             "swaps": self.swaps,
             "obj_rates": self.obj_rates,
+            "w": None if self.W is None else np.diagonal(self.W),
             **kwargs
         }
         grad_s_v = np.zeros(shape=(self.m, self.n))
@@ -257,8 +262,8 @@ class Swap:
 
 class AdvancedCurve(SolvedCurve):
     def __init__(self, nodes: dict, interpolation: str, swaps: list, obj_rates: list,
-                 t: list, algorithm: str = "gauss_newton"):
-        super().__init__(nodes, interpolation, swaps, obj_rates, algorithm)
+                 t: list, algorithm: str = "gauss_newton", w: list = None):
+        super().__init__(nodes, interpolation, swaps, obj_rates, algorithm, w=w)
         self.t = t
 
     def __getitem__(self, date: datetime):
