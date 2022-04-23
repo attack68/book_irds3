@@ -265,6 +265,7 @@ class AdvancedCurve(SolvedCurve):
                  t: list, algorithm: str = "gauss_newton", w: list = None):
         super().__init__(nodes, interpolation, swaps, obj_rates, algorithm, w=w)
         self.t = t
+        self.not_iterated = True
 
     def __getitem__(self, date: datetime):
         if date <= self.t[0]:
@@ -288,6 +289,18 @@ class AdvancedCurve(SolvedCurve):
     def calculate_metrics(self):
         self.solve_bspline()
         super().calculate_metrics()
+
+    def iterate(self):
+        if self.not_iterated:
+            w = None if self.W is None else np.diagonal(self.W)
+            base_solve = SolvedCurve(
+                self.nodes, self.interpolation, self.swaps,
+                self.obj_rates, algorithm=self.algo, w=w
+            )
+            print("basic solve: ", base_solve.iterate())
+            self.nodes = base_solve.nodes
+            self.not_iterated, self.algo = False, "gauss_newton"
+        return super().iterate()
 
 
 class SwapSpread:
