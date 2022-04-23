@@ -290,6 +290,12 @@ class AdvancedCurve(SolvedCurve):
         self.solve_bspline()
         super().calculate_metrics()
 
+    @property
+    def grad_s_v(self):
+        if getattr(self, "grad_s_v_", None) is None:
+            self.grad_s_v_numeric(t=self.t)
+        return self.grad_s_v_
+
     def iterate(self):
         if self.not_iterated:
             w = None if self.W is None else np.diagonal(self.W)
