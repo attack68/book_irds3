@@ -84,11 +84,16 @@ def add_months(start: datetime, months: int) -> datetime:
         return end
 
 
+def add_days(start: datetime, days: int) -> datetime:
+    return start + timedelta(days=days)
+
+
 class Schedule:
 
     def __init__(self, start: datetime, tenor: int, period: int, days=False):
+        self.add_op = add_days if days else add_months
         self.start = start
-        self.end = add_months(start, tenor)
+        self.end = self.add_op(start, tenor)
         self.tenor = tenor
         self.period = period
         self.dcf_conv = timedelta(days=365)
@@ -106,7 +111,7 @@ class Schedule:
         schedule = []
         period_start = self.start
         for i in range(self.n_periods - 1):
-            period_end = add_months(period_start, self.period)
+            period_end = self.add_op(period_start, self.period)
             schedule.append(
                 [period_start, period_end, (period_end - period_start) / self.dcf_conv]
             )
@@ -215,11 +220,13 @@ class Swap:
         tenor: int,
         period_fix: int,
         period_float: int,
+        days: bool = False,
     ):
+        self.add_op = add_days if days else add_months
         self.start = start
-        self.end = add_months(start, tenor)
-        self.schedule_fix = Schedule(start, tenor, period_fix)
-        self.schedule_float = Schedule(start, tenor, period_float)
+        self.end = self.add_op(start, tenor)
+        self.schedule_fix = Schedule(start, tenor, period_fix, days=days)
+        self.schedule_float = Schedule(start, tenor, period_float, days=days)
 
     def __repr__(self):
         return f"<Swap: {self.start.strftime('%Y-%m-%d')} -> " \
@@ -276,3 +283,12 @@ class AdvancedCurve(SolvedCurve):
     def calculate_metrics(self):
         self.solve_bspline()
         super().calculate_metrics()
+
+
+class SwapSpread:
+    def __init__(self, swap1: Swap, swap2: Swap):
+        self.swap1 = swap1
+        self.swap2 = swap2
+
+    def rate(self, curve: Curve):
+        return self.swap2.rate(curve) - self.swap1.rate(curve)
