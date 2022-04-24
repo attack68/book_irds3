@@ -208,12 +208,19 @@ class SolvedCurve(Curve):
         grad_s_v = np.zeros(shape=(self.m, self.n))
         ds = 1e-2
         s_cv_fwd = type(self)(**kwargs)
+        s_cv_bck = type(self)(**kwargs)
+        s_cv_fwd.not_iterated = False
+        s_cv_bck.not_iterated = False
         for s in range(self.m):
-            s_cv_fwd.nodes, s_cv_fwd.s = self.nodes, self.s.copy()
+            s_cv_fwd.nodes, s_cv_fwd.s = deepcopy(self.nodes), self.s.copy()
+            s_cv_bck.nodes, s_cv_bck.s = deepcopy(self.nodes), self.s.copy()
             s_cv_fwd.s[s, 0] += ds
+            s_cv_bck.s[s, 0] -= ds
             print("fwd", s_cv_fwd.iterate())
+            print("bck", s_cv_bck.iterate())
             dvds_fwd = np.array([v.real for v in (s_cv_fwd.v[:, 0] - self.v[:, 0])/ds])
-            grad_s_v[s, :] = dvds_fwd
+            dvds_bck = np.array([v.real for v in (s_cv_bck.v[:, 0] - self.v[:, 0])/ds])
+            grad_s_v[s, :] = (dvds_fwd - dvds_bck) / 2
         self.grad_s_v_ = grad_s_v
 
 
