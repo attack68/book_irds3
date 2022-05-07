@@ -25,7 +25,7 @@ def interpolate(x, x_1, y_1, x_2, y_2, interpolation, start=None):
     elif interpolation == "log_linear":
         op, y_1, y_2 = exp, log(y_1), log(y_2)
     elif interpolation == "linear_zero_rate":
-        if start - x_1 == 0:
+        if (start - x_1 == 0) or (start - x_1 == timedelta(days=0)):
             y_1 = 0
         else:
             y_1 = log(y_1) / ((start - x_1) / timedelta(days=365))
