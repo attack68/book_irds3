@@ -25,11 +25,11 @@ def interpolate(x, x_1, y_1, x_2, y_2, interpolation, start=None):
     elif interpolation == "log_linear":
         op, y_1, y_2 = exp, log(y_1), log(y_2)
     elif interpolation == "linear_zero_rate":
+        y_2 = log(y_2) / ((start - x_2) / timedelta(days=365))
         if (start - x_1 == 0) or (start - x_1 == timedelta(days=0)):
-            y_1 = 0
+            y_1 = y_2
         else:
             y_1 = log(y_1) / ((start - x_1) / timedelta(days=365))
-        y_2 = log(y_2) / ((start - x_2) / timedelta(days=365))
         op = lambda z: exp((start-x)/timedelta(days=365) * z)
     ret = op(y_1 + (y_2 - y_1) * (x - x_1) / (x_2 - x_1))
     return ret
