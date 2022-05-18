@@ -3,7 +3,7 @@ import numpy as np
 
 import context
 from modules.dual import Dual
-from modules.curves import Swap, datetime, SolvedCurve, Curve
+from modules.curves import Swap, datetime, SolvedCurve, Curve, Portfolio
 
 
 @pytest.fixture()
@@ -75,3 +75,14 @@ def test_swap_creation_notional(nodes):
     curve = Curve(nodes=nodes, interpolation="log_linear")
     swap = Swap(datetime(2022, 1, 1), 2 * 12, 12, 12, fixed_rate=1.00, notional=100e6)
     assert swap.npv(curve).real == -2000000
+
+
+def test_portfolio_npv(nodes):
+    crv = Curve(nodes=nodes, interpolation="log_linear")
+    swap1 = Swap(datetime(2022, 1, 1), 2 * 12, 12, 12, fixed_rate=1.00, notional=100e6)
+    swap2 = Swap(datetime(2022, 1, 1), 3 * 12, 12, 12, fixed_rate=2.00, notional=10e6)
+    swap3 = Swap(datetime(2022, 1, 1), 4 * 12, 12, 12, fixed_rate=3.00, notional=1e6)
+    portfolio = Portfolio(objects=[swap1, swap2, swap3])
+    assert portfolio.npv(crv) == swap1.npv(crv) + swap2.npv(crv) + swap3.npv(crv)
+
+

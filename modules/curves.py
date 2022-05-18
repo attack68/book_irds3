@@ -336,3 +336,20 @@ class SwapSpread:
 
     def rate(self, curve: Curve):
         return self.swap2.rate(curve) - self.swap1.rate(curve)
+
+
+class Portfolio:
+    def __init__(self, objects: list = []):
+        self.objects = objects
+
+    def risk(self, curve: SolvedCurve):
+        risk = self.objects[0].risk(curve)
+        for obj in self.objects[1:]:
+            risk += obj.risk(curve)
+        return risk
+
+    def npv(self, curve: SolvedCurve):
+        npv = self.objects[0].npv(curve)
+        for obj in self.objects[1:]:
+            npv += obj.npv(curve)
+        return npv
