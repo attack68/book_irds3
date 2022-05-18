@@ -3,7 +3,7 @@ import numpy as np
 
 import context
 from modules.dual import Dual
-from modules.curves import Swap, datetime, SolvedCurve
+from modules.curves import Swap, datetime, SolvedCurve, Curve
 
 
 @pytest.fixture()
@@ -17,14 +17,13 @@ def market_rates():
 
 
 @pytest.fixture()
-def nodes(market_rates):
+def nodes():
     return {
         datetime(2022, 1, 1): Dual(1, {"v0": 1}),
         datetime(2023, 1, 1): Dual(1, {"v1": 1}),
         datetime(2024, 1, 1): Dual(1, {"v2": 1}),
         datetime(2025, 1, 1): Dual(1, {"v3": 1}),
         datetime(2026, 1, 1): Dual(1, {"v4": 1}),
-
     }
 
 
@@ -55,3 +54,24 @@ def test_solved_curve_overspecified(market_rates):
     assert "tolerance reached" in ret
     assert "7 iterations" in ret
     assert s_cv.f.real > 1e-3
+
+
+def test_basic_scaling(nodes):
+    curve = Curve(nodes=nodes, interpolation="log_linear")
+    swap = Swap(datetime(2022, 1, 1), 2*12, 12, 12, fixed_rate=1.00)
+    assert swap.analytic_delta(curve).real == 200
+    assert swap.rate(curve).real == 0
+    assert swap.npv(curve).real == -20000
+
+    curve = Curve(interpolation="log_linear", nodes={
+        datetime(2022, 1, 1): 1.0, datetime(2032, 1, 1): 0.90
+    })
+    assert abs(swap.analytic_delta(curve).real - 196.868462959) < 1e-7
+    assert abs(swap.rate(curve).real - 1.058592008) < 1e-7
+    assert abs(swap.npv(curve).real - 1153.49187188) < 1e-7
+
+
+def test_swap_creation_notional(nodes):
+    curve = Curve(nodes=nodes, interpolation="log_linear")
+    swap = Swap(datetime(2022, 1, 1), 2 * 12, 12, 12, fixed_rate=1.00, notional=100e6)
+    assert swap.npv(curve).real == -2000000

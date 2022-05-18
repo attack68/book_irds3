@@ -233,38 +233,51 @@ class Swap:
         period_fix: int,
         period_float: int,
         days: bool = False,
+        fixed_rate: float = None,
+        notional: float = None,
     ):
         self.add_op = add_days if days else add_months
         self.start = start
         self.end = self.add_op(start, tenor)
         self.schedule_fix = Schedule(start, tenor, period_fix, days=days)
         self.schedule_float = Schedule(start, tenor, period_float, days=days)
+        self.fixed_rate = fixed_rate
+        self.notional = 1e6 if notional is None else notional
 
     def __repr__(self):
         return f"<Swap: {self.start.strftime('%Y-%m-%d')} -> " \
                f"{self.end.strftime('%Y-%m-%d')}>"
 
-    def analytic_delta(self, curve: Curve, leg: str = "fix", notional: float = 1e4):
+    def analytic_delta(self, curve: Curve, leg: str = "fix"):
         delta = 0
         for period in getattr(self, f"schedule_{leg}").data:
             delta += curve[period[1]] * period[2]
-        return delta * notional / 10000
+        return delta * self.notional / 10000
 
     def rate(self, curve: Curve):
-        rate = (curve[self.start] - curve[self.end]) / self.analytic_delta(curve)
+        analytic_delta = self.analytic_delta(curve) * 10000 / self.notional
+        rate = (curve[self.start] - curve[self.end]) / analytic_delta
         return rate * 100
 
-    def npv(self, curve: Curve, fixed_rate: float, notional: float = 1e6):
-        npv = (self.rate(curve) - fixed_rate) * self.analytic_delta(curve)
-        return npv * notional / 100
+    def npv(self, curve: Curve):
+        self.set_fixed_rate(fixed_rate=self.fixed_rate, curve=curve)
+        npv = (self.rate(curve) - self.fixed_rate) * self.analytic_delta(curve)
+        return npv * 100
 
-    def risk(self, curve: SolvedCurve, fixed_rate: float, notional: float = 1e6):
+    def risk(self, curve: SolvedCurve):
         grad_v_P = np.array([
-            [self.npv(curve, fixed_rate, notional).dual.get(f"v{i+1}", 0)
+            [self.npv(curve).dual.get(f"v{i+1}", 0)
              for i in range(curve.n)]
         ]).transpose()
         grad_s_P = np.matmul(curve.grad_s_v, grad_v_P)
         return grad_s_P / 100
+
+    def set_fixed_rate(self, fixed_rate: float=None, curve: Curve = None):
+        if fixed_rate is None:
+            fixed_rate = self.rate(curve)
+            if isinstance(fixed_rate, Dual):
+                fixed_rate = fixed_rate.real
+        self.fixed_rate = fixed_rate
 
 
 class AdvancedCurve(SolvedCurve):
