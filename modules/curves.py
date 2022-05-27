@@ -257,8 +257,14 @@ class Swap(Covar_, PCA_):
         return delta * self.notional / 10000
 
     def rate(self, curve: Curve):
-        analytic_delta = self.analytic_delta(curve) * 10000 / self.notional
-        rate = (curve[self.start] - curve[self.end]) / analytic_delta
+        if self.notional == 0:
+            self.notional = 1
+            analytic_delta = self.analytic_delta(curve) * 10000 / self.notional
+            rate = (curve[self.start] - curve[self.end]) / analytic_delta
+            self.notional = 0
+        else:
+            analytic_delta = self.analytic_delta(curve) * 10000 / self.notional
+            rate = (curve[self.start] - curve[self.end]) / analytic_delta
         return rate * 100
 
     def npv(self, curve: Curve):
