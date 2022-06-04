@@ -47,3 +47,9 @@ class Covar_:
         c = self.covar(curve, Q, S_ini=S)
         S_min = S + self.covar_mmt(curve, Q, instruments, S_ini=S)
         return np.sqrt(np.matmul(S_min.T, np.matmul(Q, S_min)))[0, 0] - c
+
+    @staticmethod
+    def covar_squared(Q, mu):
+        Q_12 = 2 * np.matmul(Q, np.diag(mu[:, 0]))
+        Q_22 = 2 * Q * (2 * np.matmul(mu, mu.T) + Q)
+        return np.block([[Q, Q_12], [Q_12.T, Q_22]])
