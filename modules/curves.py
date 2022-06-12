@@ -7,6 +7,7 @@ from modules.dual import Dual
 from modules.bsplines import BSpline
 from modules.covar import Covar_
 from modules.pca import PCA_
+from modules.mid_market import Margin_
 
 
 def exp(x):
@@ -226,7 +227,7 @@ class SolvedCurve(Curve):
         self.grad_s_v_ = grad_s_v
 
 
-class Swap(Covar_, PCA_):
+class Swap(Covar_, PCA_, Margin_):
 
     def __init__(
         self,
@@ -346,7 +347,7 @@ class SwapSpread:
         return self.swap2.rate(curve) - self.swap1.rate(curve)
 
 
-class Portfolio(Covar_, PCA_):
+class Portfolio(Covar_, PCA_, Margin_):
     def __init__(self, objects: list = []):
         self.objects = objects
 

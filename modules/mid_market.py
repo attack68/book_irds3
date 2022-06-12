@@ -57,3 +57,18 @@ def mean_intrinsic_depth_average(b, w, a, v, t):
     p_mbida = single_sided_mida(b, w, t)
     p_maida = single_sided_mida(a, v, t)
     return (p_mbida + p_maida) / 2
+
+
+class Margin_:
+
+    def model_margin(self, c, A, S):
+        n = c.shape[0]
+        I = np.eye(n)
+        ret = op.linprog(
+            c=np.block([np.zeros(n), c[:, 0]]),
+            A_eq=np.block([A, np.zeros(A.shape)]), b_eq=S[:, 0],
+            A_ub=np.block([[I, -I], [-I, -I]]), b_ub=np.zeros(2*n),
+            bounds=[(-1e10, 1e10)] * n + [(0, 1e10)] * n,
+            method="highs-ds"
+        )
+        return ret.fun, ret.x[:n], ret
