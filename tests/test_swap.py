@@ -3,7 +3,7 @@ import numpy as np
 
 import context
 from modules.dual import Dual
-from modules.curves import Swap, datetime, SolvedCurve, Curve, Portfolio
+from modules.curves import Swap, datetime, SolvedCurve, Curve, Portfolio, Swap2
 
 
 @pytest.fixture()
@@ -86,3 +86,14 @@ def test_portfolio_npv(nodes):
     assert portfolio.npv(crv) == swap1.npv(crv) + swap2.npv(crv) + swap3.npv(crv)
 
 
+def test_swap2(market_rates, nodes):
+    s_cv = SolvedCurve(
+        nodes=nodes, interpolation="log_linear", obj_rates=list(market_rates.values()),
+        swaps=list(market_rates.keys()), algorithm="levenberg_marquardt"
+    )
+    s_cv.iterate()
+    swap = Swap(datetime(2022, 1, 1), 2 * 12, 12, 12, fixed_rate=1.00, notional=100e6)
+    swap2 = Swap2(datetime(2022, 1, 1), 2 * 12, 12, 12, fixed_rate=1.00, notional=100e6)
+
+    assert abs(swap.rate(s_cv) - swap2.rate(s_cv)) < 1e-8
+    assert abs(swap.npv(s_cv) - swap2.npv(s_cv)) < 1e-8

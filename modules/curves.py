@@ -281,12 +281,39 @@ class Swap(Covar_, PCA_, Margin_):
         grad_s_P = np.matmul(curve.grad_s_v, grad_v_P)
         return grad_s_P / 100
 
-    def set_fixed_rate(self, fixed_rate: float=None, curve: Curve = None):
+    def set_fixed_rate(self, fixed_rate: float = None, *args, **kwargs):
         if fixed_rate is None:
-            fixed_rate = self.rate(curve)
+            fixed_rate = self.rate(*args, **kwargs)
             if isinstance(fixed_rate, Dual):
                 fixed_rate = fixed_rate.real
         self.fixed_rate = fixed_rate
+
+
+class Swap2(Swap):
+    def __init__(self, *args, **kwargs):
+       super().__init__(*args, **kwargs)
+
+    def rate(self, curve: Curve, disc_curve: Curve = None):
+        disc_curve = disc_curve or curve
+        if self.notional == 0:
+            self.notional = 1
+            fixed_delta = self.analytic_delta(disc_curve) * 10000 / self.notional
+            self.notional = 0
+        else:
+            fixed_delta = self.analytic_delta(disc_curve) * 10000 / self.notional
+
+        floating_leg = 0
+        for period in getattr(self, f"schedule_float").data:
+            _ = (curve[period[0]] / curve[period[1]] - 1)
+            floating_leg += _ * disc_curve[period[1]]
+
+        return floating_leg / fixed_delta * 100
+
+    def npv(self, curve: Curve, disc_curve: Curve = None):
+        disc_curve = disc_curve or curve
+        self.set_fixed_rate(self.fixed_rate, curve, disc_curve)
+        rate_diff = (self.rate(curve, disc_curve) - self.fixed_rate)
+        return rate_diff * self.analytic_delta(disc_curve) * 100
 
 
 class AdvancedCurve(SolvedCurve):
