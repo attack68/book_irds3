@@ -97,3 +97,21 @@ def test_swap2(market_rates, nodes):
 
     assert abs(swap.rate(s_cv) - swap2.rate(s_cv)) < 1e-8
     assert abs(swap.npv(s_cv) - swap2.npv(s_cv)) < 1e-8
+    dpdz, dpds = swap2.risk_fwd_zero_rates(s_cv)
+    assert abs(swap2.analytic_delta(s_cv) - dpdz.sum()) < 1e-4
+    assert abs(swap2.npv(s_cv) * 2 / 10000 + dpds.sum()) < 1
+
+
+def test_curve_grad_v_r(market_rates, nodes):
+    s_cv = SolvedCurve(
+        nodes=nodes, interpolation="log_linear", obj_rates=list(market_rates.values()),
+        swaps=list(market_rates.keys()), algorithm="levenberg_marquardt"
+    )
+    s_cv.iterate()
+    expected = np.array([
+        [-0.98030, -0.96673, -0.95237, -0.93826],
+        [0, -0.96289, -0.94859, -0.93453],
+        [0, 0, -0.95020, -0.93612],
+        [0, 0, 0, -0.93359]
+    ])
+    assert np.all(np.abs(s_cv.grad_r_v - expected) < 1e-4)

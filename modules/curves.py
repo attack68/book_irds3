@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 import math
 from math import ceil
-from copy import deepcopy
+from copy import deepcopy, copy
 import numpy as np
 from modules.dual import Dual
 from modules.bsplines import BSpline
@@ -37,7 +37,7 @@ def interpolate(x, x_1, y_1, x_2, y_2, interpolation, start=None):
 
 class Curve:
 
-    def __init__(self, nodes: dict, interpolation: str):
+    def __init__(self, nodes: dict, interpolation: str, **kwargs):
         self.nodes = deepcopy(nodes)
         self.interpolation = interpolation
 
@@ -62,6 +62,18 @@ class Curve:
             output += f"{k.strftime('%Y-%b-%d')}: {v:.6f}\n"
         return output
 
+    def __copy__(self):
+        W = getattr(self, "W", None)
+        return type(self)(
+            nodes=self.nodes,
+            interpolation=self.interpolation,
+            swaps=getattr(self, "swaps", None),
+            algorithm=getattr(self, "algo", None),
+            obj_rates=getattr(self, "obj_rates", None),
+            w=None if W is None else np.diagonal(W),
+            t=getattr(self, "t", None),
+        )
+
     def rate(self, start: datetime, months: int = None, days: int = None):
         if months is not None:
             end = add_months(start, months)
@@ -72,6 +84,28 @@ class Curve:
         df_ratio = self[start] / self[end]
         rate = (df_ratio - 1) * timedelta(days=365) / (end - start)
         return rate * 100
+
+    @property
+    def var_collection(self):
+        def val(v):
+            return v.real if isinstance(v, Dual) else v
+        v = np.array([val(v) for v in self.nodes.values()])
+        n = v.shape[0] - 1
+        dsds = np.array([v[i + 1] / v[i] for i in range(n)])
+        dates = [k for k in self.nodes.keys()]
+        d = np.array([
+            (dates[i + 1] - dates[i]) / timedelta(days=365) for i in range(n)
+        ])
+        return v[:, np.newaxis], dsds[:, np.newaxis], d[:, np.newaxis], n
+
+    @property
+    def grad_r_v(self):
+        if getattr(self, "grad_r_v_", None) is None:
+            v, dsds, d, n = self.var_collection
+            v = v[1:, :]
+            alpha = np.triu(np.ones((n, n)))
+            self.grad_r_v_ = -np.matmul(np.diag(dsds[:, 0]), np.matmul(d, v.T)) * alpha
+        return self.grad_r_v_
 
 
 def add_months(start: datetime, months: int) -> datetime:
@@ -127,7 +161,7 @@ class Schedule:
 
 class SolvedCurve(Curve):
     def __init__(self, nodes: dict, interpolation: str, swaps: list, obj_rates: list,
-                 algorithm: str = "gauss_newton", w: list = None):
+                 algorithm: str = "gauss_newton", w: list = None, **kwargs):
         super().__init__(nodes=nodes, interpolation=interpolation)
         self.swaps, self.obj_rates, self.algo = swaps, obj_rates, algorithm
         self.n, self.m = len(self.nodes.keys()) - 1, len(self.swaps)
@@ -315,6 +349,21 @@ class Swap2(Swap):
         rate_diff = (self.rate(curve, disc_curve) - self.fixed_rate)
         return rate_diff * self.analytic_delta(disc_curve) * 100
 
+    def risk_fwd_zero_rates(self, curve: SolvedCurve, disc_curve: SolvedCurve = None):
+        disc_curve = disc_curve or curve
+        stat_crv, stat_disc_crv = copy(curve), copy(disc_curve)
+        for crv in [stat_crv, stat_disc_crv]:
+            crv.nodes = {k: v.real for (k, v) in crv.nodes.items()}
+        n = len(curve.nodes.keys())
+        npv_fore = self.npv(curve, stat_disc_crv)
+        grad_zv_p = np.array([npv_fore.dual.get(f"v{i}", 0) for i in range(1, n)])
+        npv_disc = self.npv(stat_crv, disc_curve)
+        grad_sv_p = np.array([npv_disc.dual.get(f"v{i}", 0) for i in range(1, n)])
+
+        grad_z_p = np.matmul(curve.grad_r_v, grad_zv_p[:, np.newaxis])
+        grad_s_p = np.matmul(disc_curve.grad_r_v, grad_sv_p[:, np.newaxis])
+        return grad_z_p / 10000, grad_s_p / 10000
+
 
 class AdvancedCurve(SolvedCurve):
     def __init__(self, nodes: dict, interpolation: str, swaps: list, obj_rates: list,
@@ -389,3 +438,12 @@ class Portfolio(Covar_, PCA_, Margin_):
         for obj in self.objects[1:]:
             npv += obj.npv(curve)
         return npv
+
+    def risk_fwd_zero_rates(self, curve: SolvedCurve, disc_curve: SolvedCurve = None):
+        disc_curve = disc_curve or curve
+        risk_z, risk_s = self.objects[0].risk_fwd_zero_rates(curve, disc_curve)
+        for obj in self.objects[1:]:
+            risk = obj.risk_fwd_zero_rates(curve, disc_curve)
+            risk_z += risk[0]
+            risk_s += risk[1]
+        return risk_z, risk_s
