@@ -8,6 +8,7 @@ from modules.bsplines import BSpline
 from modules.covar import Covar_
 from modules.pca import PCA_
 from modules.mid_market import Margin_
+from modules.cross_gamma import Gamma_
 
 
 def exp(x):
@@ -323,7 +324,7 @@ class Swap(Covar_, PCA_, Margin_):
         self.fixed_rate = fixed_rate
 
 
-class Swap2(Swap):
+class Swap2(Swap, Gamma_):
     def __init__(self, *args, **kwargs):
        super().__init__(*args, **kwargs)
 
@@ -423,7 +424,7 @@ class SwapSpread:
         return self.swap2.rate(curve) - self.swap1.rate(curve)
 
 
-class Portfolio(Covar_, PCA_, Margin_):
+class Portfolio(Covar_, PCA_, Margin_, Gamma_):
     def __init__(self, objects: list = []):
         self.objects = objects
 
