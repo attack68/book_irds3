@@ -1,4 +1,5 @@
-# IRDs Book
+![Screenshot 2022-06-23 at 17 46 54](https://user-images.githubusercontent.com/24256554/175342928-f1d2af23-a5e5-436c-a8ad-a56835e99091.png)
+
 This is the code repository for Pricing and Trading Interest Rate Derivatives (3rd Edition). This repository is minimalist for pedagogical purposes. It does not contain documentation or code comments since all explanation and every step of the construction process is discussed in relevant sections of the text material. This code is is released under a GNU Public License v3. Please review this with particular regard to sections 15 and 16 on warranty and liability, of which the author offers none and assumes none respectively.
 
 ### Structure of this repository
