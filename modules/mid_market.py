@@ -59,6 +59,19 @@ def mean_intrinsic_depth_average(b, w, a, v, t):
     return (p_mbida + p_maida) / 2
 
 
+def bayes_inferred_market_moves(Q, H, x, mu_x=None, mu_Y=None):
+    # H is a list of indexes referring to the variables to infer
+    n, Q_inv = Q.shape[0], np.linalg.inv(Q)
+    mu_x = np.zeros((n-len(H), 1)) if mu_x is None else mu_x
+    mu_Y = np.zeros((len(H), 1)) if mu_Y is None else mu_Y
+    H_ = list(set(range(n)).difference(set(H)))
+    Y = np.linalg.solve(Q_inv[np.ix_(H, H)], -np.matmul(Q_inv[np.ix_(H, H_)], x-mu_x))
+    Y += mu_Y
+    delta_r = np.zeros((n, 1))
+    delta_r[H, :], delta_r[H_, :] = Y, x
+    return delta_r
+
+
 class Margin_:
 
     def model_margin(self, c, A, S):
