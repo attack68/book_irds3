@@ -108,6 +108,15 @@ class Curve:
             self.grad_r_v_ = -np.matmul(np.diag(dsds[:, 0]), np.matmul(d, v.T)) * alpha
         return self.grad_r_v_
 
+    @property
+    def grad_v_r(self):
+        if getattr(self, "grad_v_r_", None) is None:
+            v, dsds, d, n = self.var_collection
+            diag0 = -v[:n, 0] / (d[:, 0] * v[1:, 0] ** 2)
+            diag1 = 1 / (d[:, 0] * v[1:, 0])
+            self.grad_v_r_ = np.diag(diag0) + np.diag(diag1[1:], 1)
+        return self.grad_v_r_
+
 
 def add_months(start: datetime, months: int) -> datetime:
     """add a given number of months to an input date with a modified month end rule"""
