@@ -18,3 +18,31 @@ class Gamma_:
             transform = lambda G: np.matmul(np.matmul(J, G), J.T)
             return transform(dP_dsds), transform(dP_dsdz), transform(dP_dzdz)
         return dP_dsds, dP_dsdz, dP_dzdz
+
+    def exp_pnl(self, curve, mu, Q=None, order=1, S=None, G=None):
+        S = S if S is not None else self.risk(curve)
+        ret = np.matmul(S.T, mu)
+        if order == 2:
+            if G is None:
+                ss, sz, zz = self.cross_gamma(curve, swaps=True)
+                G = ss + sz + sz.T + zz
+            ret += 0.5 * np.einsum('ij, ji', G, Q)
+            ret += 0.5 * np.einsum('ix, ij, jx', mu, G, mu)
+        return ret
+
+    def var_pnl(self, curve, mu, Q, order=1, S=None, G=None):
+        S = S if S is not None else self.risk(curve)
+        ret = np.matmul(np.matmul(S.T, Q), S)
+        if order == 2:
+            if G is None:
+                ss, sz, zz = self.cross_gamma(curve, swaps=True)
+                G = ss + sz + sz.T + zz
+            ret += 0.5 * np.einsum('ij, jk, kl, li', G, Q, G, Q)
+            ret += np.einsum('ix, ij, jk, kl, lx', mu, G, Q, G, mu)
+            ret += 2 * np.einsum('ix, ij, jk, kx', S, Q, G, mu)
+        return ret
+
+    def sharpe(self, curve, mu, Q, order=1, S=None, G=None):
+        exp = self.exp_pnl(curve, mu, Q, order, S, G),
+        vol = np.sqrt(self.var_pnl(curve, mu, Q, order, S, G))
+        return exp / vol
