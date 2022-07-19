@@ -6,6 +6,7 @@ This is the code repository for Pricing and Trading Interest Rate Derivatives (3
 
 1) **modules**: this folder contains the code files that are discussed and created within the text.
 2) **notebooks**: this folder contains Jupyter Notebooks that can be executed to recreate many of the examples documented in the text, often with additional aids.
-3) **previous_edition_material**: this folder contains legacy files from previous editions of the book, mostly Excel workbooks with former examples.
-4) **tests**: this folder contains test scripts to ensure the functions continue to operate correctly as development occurred. Tests should not be considered exhaustive.
-5) **requirement.txt**: this file contains the Python packages and their versions that were used in the creation of this repository.
+3) **files**: this folder contains files that are cited in the bibliography of the text.
+4) **previous_edition_material**: this folder contains legacy files from previous editions of the book, mostly Excel workbooks with former examples.
+5) **tests**: this folder contains test scripts to ensure the functions continue to operate correctly as development occurred. Tests should not be considered exhaustive.
+6) **requirement.txt**: this file contains the Python packages and their versions that were used in the creation of this repository.
