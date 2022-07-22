@@ -27,5 +27,8 @@ dev = [
     "pandas>=1.4.1",
 ]
 
+[tool.setuptools]
+py-modules = ["bookirds"]
+
 [project.urls]
 Homepage = "https://github.com/attack68/book_irds3"
