@@ -5,7 +5,7 @@ requires      = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "book-irds3"
+name = "bookirds3"
 version = "1.0.0"
 description = "Pricing and Trading Interest Rate Derivatives"
 readme = "README.md"
@@ -13,18 +13,18 @@ authors = [{ name = "J H M Darbyshire"}]
 license = { file = "LICENSE" }
 keywords = ["interest rate", "derivatives", "swaps"]
 dependencies = [
-    "numpy==1.21.5",
-    "pandas==1.4.1",
-    "scipy==1.8.0",
-    "numba==0.55.1",
+    "numpy>=1.21.5",
+    "scipy>=1.8.0",
 ]
 requires-python = ">=3.7"
 
 [project.optional-dependencies]
 dev = [
-    "pytest==7.0.1",
-    "jupyterlab==3.3.1",
-    "matplotlib==3.5.1"
+    "pytest>=7.0.1",
+    "jupyterlab>=3.3.1",
+    "matplotlib>=3.5.1",
+    "numba>=0.55.1",
+    "pandas>=1.4.1",
 ]
 
 [project.urls]

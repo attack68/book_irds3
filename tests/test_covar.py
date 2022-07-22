@@ -1,7 +1,7 @@
 import numpy as np
 
 import context
-from modules.curves import Portfolio
+from bookirds.curves import Portfolio
 
 
 def test_covar_squared():

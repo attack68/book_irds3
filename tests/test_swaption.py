@@ -1,7 +1,7 @@
 import pytest
 
 import context
-from modules.swaptions import (
+from bookirds.swaptions import (
     swaption_price,
     swaption_implied_vol,
     swaption_delta,
