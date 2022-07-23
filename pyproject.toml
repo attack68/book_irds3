@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bookirds3"
-version = "1.0.0"
+version = "1.0.1"
 description = "Pricing and Trading Interest Rate Derivatives"
 readme = "README.md"
 authors = [{ name = "J H M Darbyshire"}]
