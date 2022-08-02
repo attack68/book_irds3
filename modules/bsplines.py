@@ -59,6 +59,11 @@ class BSpline:
         self.k = k
         self.n = len(t) - k
 
+    def __copy__(self):
+        ret = BSpline(self.k, self.t)
+        ret.c = getattr(self, "c", None)
+        return ret
+
     def bsplev(self, x, i, otypes=["float64"]):
         """Evaluate `x` coordinates on the `i`th B-Spline. Returns 1d array."""
         func = np.vectorize(bsplev_single, excluded=["k", "t"], otypes=otypes)

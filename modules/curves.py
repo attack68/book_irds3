@@ -381,12 +381,18 @@ class AdvancedCurve(SolvedCurve):
         super().__init__(nodes, interpolation, swaps, obj_rates, algorithm, w=w)
         self.t = t
         self.not_iterated = True
+        self.bs = BSpline(4, t)
 
     def __getitem__(self, date: datetime):
         if date <= self.t[0]:
             return super().__getitem__(date)
         else:
             return self.bs.ppev_single(date).__exp__()
+
+    def __copy__(self):
+        ret = super().__copy__()
+        ret.bs = copy(self.bs)
+        return ret
 
     def solve_bspline(self):
         tau = [k for k in self.nodes.keys() if k >= self.t[0]]
@@ -398,7 +404,6 @@ class AdvancedCurve(SolvedCurve):
         y.insert(0, 0)
         y.append(0)
 
-        self.bs = BSpline(4, self.t)
         self.bs.bsplsolve(np.array(tau), np.array(y), 2, 2)
 
     def calculate_metrics(self):
