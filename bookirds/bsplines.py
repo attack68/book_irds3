@@ -1,5 +1,5 @@
 import numpy as np
-from modules.dual import solve
+from bookirds.dual import solve
 from datetime import datetime, timedelta
 
 

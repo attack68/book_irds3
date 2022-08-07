@@ -2,8 +2,8 @@ import pytest
 from pandas import DataFrame
 
 import context
-from modules.mid_market import intrinsic_depth_average, mean_intrinsic_depth_average
-from modules.curves import *
+from bookirds.mid_market import intrinsic_depth_average, mean_intrinsic_depth_average
+from bookirds.curves import *
 
 
 @pytest.fixture()

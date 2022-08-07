@@ -2,8 +2,8 @@ import pytest
 import numpy as np
 
 import context
-from modules.dual import Dual
-from modules.curves import Swap, datetime, SolvedCurve, Curve, Portfolio, Swap2
+from bookirds.dual import Dual
+from bookirds.curves import Swap, datetime, SolvedCurve, Curve, Portfolio, Swap2
 
 
 def test_cross_gamma():

@@ -3,7 +3,7 @@ import numpy as np
 from scipy.linalg import lu
 
 import context
-from modules.dual import Dual, solve, plu_decomp
+from bookirds.dual import Dual, solve, plu_decomp
 
 
 @pytest.fixture()

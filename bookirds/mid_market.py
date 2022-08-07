@@ -1,5 +1,5 @@
 import numpy as np
-from numba import jit
+# from numba import jit
 from math import log
 from scipy import optimize as op
 
@@ -16,7 +16,7 @@ def weighted_max_first_depth_average(b, w, a, v, z):
     return (b[0] * min(v[0], z) + a[0] * min(w[0], z)) / (min(w[0], z) + min(v[0], z))
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def single_sided_ida(b, w, z):
     sum_w = w.cumsum()
     z = sum_w[-1] if z > sum_w[-1] else z
@@ -35,7 +35,7 @@ def intrinsic_depth_average(b, w, a, v, z):
     return (p_bida + p_aida) / 2
 
 
-@jit(nopython=True)
+# @jit(nopython=True)
 def single_sided_mida(b, w, t):
     sum_w = w.cumsum()
     t = sum_w[-1] if t > sum_w[-1] else t

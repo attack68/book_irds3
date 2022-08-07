@@ -3,12 +3,12 @@ import math
 from math import ceil
 from copy import deepcopy, copy
 import numpy as np
-from modules.dual import Dual
-from modules.bsplines import BSpline
-from modules.covar import Covar_
-from modules.pca import PCA_
-from modules.mid_market import Margin_
-from modules.cross_gamma import Gamma_
+from bookirds.dual import Dual
+from bookirds.bsplines import BSpline
+from bookirds.covar import Covar_
+from bookirds.pca import PCA_
+from bookirds.mid_market import Margin_
+from bookirds.cross_gamma import Gamma_
 
 
 def exp(x):

@@ -2,7 +2,7 @@ import pytest
 import numpy as np
 
 import context
-from modules.bsplines import *
+from bookirds.bsplines import *
 
 
 @pytest.fixture()

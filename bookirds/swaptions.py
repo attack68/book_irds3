@@ -1,6 +1,6 @@
 from math import pi
 from scipy.stats import norm
-from modules.curves import log, exp
+from bookirds.curves import log, exp
 
 
 def swaption_price(forward, strike, expiry, ann_vol, option, distribution):
