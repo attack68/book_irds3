@@ -36,7 +36,7 @@ This is enough to execute the code examples in the book. For example the
 first instance, of chapter 11 can be replicated as follows
 
 ```python
-from bookirds import Curve
+from bookirds.curves import Curve
 from datetime import datetime
 
 curve = Curve(interpolation="log_linear", nodes={

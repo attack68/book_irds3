@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "bookirds3"
-version = "1.0.1"
+version = "1.1.1"
 description = "Pricing and Trading Interest Rate Derivatives"
 readme = "README.md"
 authors = [{ name = "J H M Darbyshire"}]
@@ -28,7 +28,7 @@ dev = [
 ]
 
 [tool.setuptools]
-py-modules = ["bookirds"]
+packages = ["bookirds"]
 
 [project.urls]
 Homepage = "https://github.com/attack68/book_irds3"
