@@ -195,7 +195,11 @@ class SolvedCurve(Curve):
 
     def update_step_gradient_descent(self):
         y = np.matmul(self.J.transpose(), self.grad_v_f)
-        alpha = np.matmul(y.transpose(), self.r - self.s) / np.matmul(y.transpose(), y)
+        if self.W is None:  # see github issue 3 erratum in §11.5.1
+            alpha = np.matmul(y.transpose(), self.r - self.s) / np.matmul(y.transpose(), y)
+        else:
+            alpha = np.matmul(y.transpose(), np.matmul(self.W, self.r - self.s))
+            alpha /= np.matmul(y.transpose(), np.matmul(self.W, y))
         alpha = alpha[0][0].real
         v_1 = self.v - self.grad_v_f * alpha
         return v_1
